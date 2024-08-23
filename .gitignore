@@ -1,0 +1,9 @@
+.env
+model_state_dicts
+data
+.venv
+__pycache__
+*.pyc
+wandb
+output
+playground.ipynb
