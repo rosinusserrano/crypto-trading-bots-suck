@@ -80,10 +80,15 @@ class ConvolutionalVariationalRegression(TradingModule):
         z = torch.randn_like(mean)
 
         return (mean + z * torch.exp(logvar * 0.5)).squeeze(), mean, logvar
-    
-    def get_actual_prediction(self, output):
-        """Get the actual prediction"""
-        return output[0]
+
+    def get_prediction(self, output):
+        """Get the actual prediction.
+        
+        Returns the random sampled variable for training
+        and the mean for evaluation."""
+        if self.training:
+            return output[0]
+        return output[1]
 
     def make_choice(self, prediction, fee):
         """Predict the output"""

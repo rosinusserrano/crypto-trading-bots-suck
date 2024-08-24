@@ -88,7 +88,7 @@ def train(model: TradingModule, config: TrainConfig):
         for _, (Xbatch, Ybatch) in enumerate(dataloader):
             config.optimizer.zero_grad()
             out = model(Xbatch)
-            ypred = model.get_actual_prediction(out)
+            ypred = model.get_prediction(out)
             loss = config.loss_fn(ypred, Ybatch)
             loss.backward()
             config.optimizer.step()

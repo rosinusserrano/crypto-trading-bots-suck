@@ -35,8 +35,22 @@ class TradingModule(nn.Module):
         """Predict the output"""
         raise NotImplementedError
     
-    def get_actual_prediction(self, output):
-        """Get the actual prediction"""
+    def get_prediction(self, output):
+        """Get the prediction.
+        
+        Normally this will just return the output of the network,
+        but for models that return multiple values, this can be
+        overridden to return the actual prediction. In cases where
+        the model uses different parts of the output for training
+        and evaluation, this function can be used to return the
+        correct part of the output.
+        
+        For example, in the variational models (god knows whether 
+        they actually work), the network returns the random variables
+        sampled using the reparametrization trick, the mean
+        and the logvar. The prediction used for training is the
+        random variable, but the mean is used for evaluation.
+        """
         return output
 
     def get_dirname(self, model_id):
