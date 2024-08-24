@@ -36,12 +36,14 @@ def train(model: TradingModule, config: TrainConfig):
           asdict(config))
 
     # Initialize wandb
-
     wandb_run = wandb.init(project="bybit-trading-bot")
     wandb_run.config.update({
         "Training configuration": asdict(config),
         "Model configuration": asdict(model.config)
     })
+
+    print("Wandb initialized successfully!")
+    print(f"Wandb run name: {wandb_run.name}")
 
     # Load the data
     preprocess_fn = rates_of_change_categorical if model.config.output_type == "classification" else rates_of_change_regression
@@ -164,7 +166,7 @@ if __name__ == "__main__":
     model = ConvolutionalVariationalRegression(model_config)
 
     train_config = TrainConfig(
-        epochs=1000,
+        epochs=10000,
         batch_size=1024,
         fee=0.00055,
         start_testing_from=datetime.fromisoformat("2024-06-01T00:00:00"),
