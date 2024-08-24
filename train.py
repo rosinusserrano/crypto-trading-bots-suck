@@ -1,12 +1,11 @@
 """Training module for the trading model."""
-
-import json
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from typing import Callable
 
 import torch
 from torch.utils.data import TensorDataset, DataLoader
+from tqdm.auto import tqdm
 
 import wandb
 
@@ -17,6 +16,7 @@ from data_handling.preprocess import (make_train_and_test,
                                       get_available_symbols)
 from evaluation.simulate import simulate_trading
 from models.convolutional_variational_regression import ConvolutionalVariationalRegression, ConvolutionalVariationalRegressionConfig
+from models.fully_connected_cross_entropy_classifier import FullyConnectedCrossEntropyClassifier, FullyConnectedCrossEntropyClassifierConfig
 
 
 @dataclass
@@ -76,8 +76,7 @@ def train(model: TradingModule, config: TrainConfig):
         _, _, X_tmp, Y_tmp = make_train_and_test(
             rates_of_change_regression,
             {'window_size': model.config.window_size},
-            config.start_testing_from,
-            filename)
+            config.start_testing_from, filename)
         Xval_dict[symbol] = X_tmp
         Yval_dict[symbol] = Y_tmp
 
@@ -87,7 +86,7 @@ def train(model: TradingModule, config: TrainConfig):
     # Training loop
     for epoch in range(config.epochs):
         model.train()
-        for _, (Xbatch, Ybatch) in enumerate(dataloader):
+        for Xbatch, Ybatch in tqdm(dataloader):
             config.optimizer.zero_grad()
             out = model(Xbatch)
             ypred = model.get_prediction(out)
@@ -95,18 +94,20 @@ def train(model: TradingModule, config: TrainConfig):
             loss.backward()
             config.optimizer.step()
 
-            wandb.log({"Loss": loss.item()}, commit=False)
+        wandb.log({"Loss": loss.item()}, commit=False)
+        print(f"Epoch {epoch}: Loss: {loss.item()}")
 
         # Validation / Testing
         with torch.no_grad():
             model.eval()
 
             test_preds = model(torch.tensor(Xtest, dtype=torch.float32))
+            test_mean = model.get_prediction(test_preds)
             test_loss = config.loss_fn(
-                test_preds, torch.tensor(Ytest, dtype=torch.float32))
+                test_mean, torch.tensor(Ytest, dtype=torch.float32))
             wandb.log({"Test loss": test_loss.item()}, commit=False)
 
-            if epoch % 100 == 0:
+            if epoch % 1 == 0:
                 avg_final_return = 0
                 avg_final_log_return = 0
                 for symbol, _ in Xval_dict.items():
@@ -116,15 +117,8 @@ def train(model: TradingModule, config: TrainConfig):
                     returns = simulate_trading(model, Xval, Yval, config.fee)
                     final_return = returns[-1]
 
-                    wandb.log({f"returns_{symbol}": returns}, commit=False)
                     wandb.log({f"final_return_{symbol}": final_return.item()},
                               commit=False)
-                    wandb.log(
-                        {
-                            f"final_log_return_{symbol}":
-                            torch.log(final_return).item()
-                        },
-                        commit=False)
 
                     avg_final_return += final_return
                     avg_final_log_return += torch.log(final_return)
@@ -140,10 +134,14 @@ def train(model: TradingModule, config: TrainConfig):
 
                 if avg_final_return > best_avg_return:
                     best_avg_return = avg_final_return
-                    model.save(f"{wandb_run.name}_best_avg_return_{best_avg_return.item():.2f}")
+                    model.save(
+                        f"{wandb_run.name}_best_avg_return_{best_avg_return.item():.2f}"
+                    )
                 if avg_final_log_return > bext_avg_log_return:
                     bext_avg_log_return = avg_final_log_return
-                    model.save(f"{wandb_run.name}_best_avg_log_return_{bext_avg_log_return.item():.2f}")
+                    model.save(
+                        f"{wandb_run.name}_best_avg_log_return_{bext_avg_log_return.item():.2f}"
+                    )
 
         wandb.log({"Epoch": epoch}, commit=True)
 
@@ -153,16 +151,12 @@ def train(model: TradingModule, config: TrainConfig):
 
 
 if __name__ == "__main__":
-    model_config = ConvolutionalVariationalRegressionConfig(
-        window_size=128,
-        output_type="regression",
-        hidden_channels=[32, 64, 128],
-        kernel_size=3,
-        padding=1,
-        dropout_rate=0.1,
-        residual_connections=True,
+    model_config = FullyConnectedCrossEntropyClassifierConfig(
+        window_size=64,
+        hidden_sizes=[256, 64, 32],
         confidence_threshold=0.1,
-    )
+        dropout_rate=0.1,
+        residual_connections=False)
     model = ConvolutionalVariationalRegression(model_config)
 
     train_config = TrainConfig(

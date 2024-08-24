@@ -96,16 +96,17 @@ class ConvolutionalVariationalRegression(TradingModule):
 
         std = torch.exp(logvar * 0.5)
 
-        if std / torch.abs(mean) > self.config.confidence_threshold:
-            return Actions.HOLD
+        choices = []
+        for i in range(len(mean)):
+            if std[i] / torch.abs(mean[i]) > self.config.confidence_threshold:
+                choices.append(Actions.HOLD)
+            if mean[i] > fee:
+                choices.append(Actions.BUY)
+            if mean[i] < -fee:
+                choices.append(Actions.SELL)
+            choices.append(Actions.HOLD)
 
-        if mean > fee:
-            return Actions.BUY
-
-        if mean < -fee:
-            return Actions.SELL
-
-        return Actions.HOLD
+        return choices
 
 
 class ConvolutionBlock(nn.Module):
