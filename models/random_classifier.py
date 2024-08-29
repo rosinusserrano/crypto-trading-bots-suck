@@ -16,6 +16,6 @@ class RandomClassifier(TradingModule):
         return torch.randn((x.shape[0], len(Actions)))
 
     def make_choice(self, prediction, fee) -> list[Actions]:
-        softmax_predictions = nn.functional.softmax(prediction, dim=1)
+        softmax_predictions = nn.functional.softmax(prediction, dim=-1)
         sorted_predictions = softmax_predictions.argsort(descending=True)
         return[Actions(action.item()) for action in sorted_predictions[:, 0]]

@@ -78,8 +78,8 @@ def rates_of_change_regression(data: pd.DataFrame, window_size: int):
     X = np.lib.stride_tricks.sliding_window_view(X, window_size)
     Y = rate_of_change[window_size:]
 
-    X = torch.tensor(X)
-    Y = torch.tensor(Y)
+    X = torch.tensor(X, dtype=torch.float32)
+    Y = torch.tensor(Y, dtype=torch.float32)
 
     return X, Y
 
@@ -101,6 +101,6 @@ def rates_of_change_categorical(data: pd.DataFrame, window_size: int,
 
     Y = np.apply_along_axis(action_index, 0,
                             Y_regr.detach().cpu().numpy()[None, :])
-    Y = torch.tensor(Y, dtype=torch.int64)
+    Y = torch.tensor(Y, dtype=torch.long)
 
     return X, Y
