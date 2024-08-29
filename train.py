@@ -153,11 +153,11 @@ def train(model: TradingModule, config: TrainConfig):
 if __name__ == "__main__":
     model_config = FullyConnectedCrossEntropyClassifierConfig(
         window_size=64,
-        hidden_sizes=[256, 64, 32],
-        confidence_threshold=0.1,
+        hidden_sizes=[64, 64, 64, 64, 128],
+        confidence_threshold=0.3,
         dropout_rate=0.1,
-        residual_connections=False)
-    model = ConvolutionalVariationalRegression(model_config)
+        residual_connections=True)
+    model = FullyConnectedCrossEntropyClassifier(model_config)
 
     train_config = TrainConfig(
         epochs=10000,

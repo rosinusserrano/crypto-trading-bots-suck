@@ -5,6 +5,8 @@ from time import sleep
 import pandas as pd
 from pybit.unified_trading import HTTP
 
+from services.bybit import get_bybit_session
+
 
 def get_all_symbols(bybit_session: HTTP):
     """Get all symbols available on Bybit"""
@@ -83,3 +85,27 @@ def get_data(market_symbol, interval, bybit_session: HTTP):
     print(f"Last timestamp: {df.iloc[[-1]]['timestamp']}")
 
     df.to_csv(f"data/{market_symbol}-{interval}.csv", index=False)
+
+
+if __name__ == "__main__":
+    bybit_session = get_bybit_session()
+
+    all_symbols = get_all_symbols(bybit_session)
+
+    for s in all_symbols:
+        first_entry = get_date_of_first_entry(s, bybit_session)
+        if first_entry < datetime.fromisoformat("2022-01-01 00:00:00"):
+            print(f"Getting {s}")
+            get_data(s, "240", bybit_session)
+        else:
+            print(f"Skipping {s}")
+
+    # with_dates = [(s, get_date_of_first_entry(s, bybit_session)) for s in all_symbols if "USDT" in s]
+    # print("Symbols with dates:")
+    # print("\n".join([f"{s} - {d}" for s, d in with_dates]))
+    # symbol = ""
+    # while symbol != "q":
+    #     symbol = input(
+    #         "Which symbol do you want to fetch? (Type 'q' to exit) ")
+    #     interval = "240"
+    #     get_data(symbol, interval, bybit_session)
